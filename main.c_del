@@ -1,0 +1,32 @@
+#include <stdlib.h>
+#include <avr/io.h>
+#include <util/delay.h>
+#include <string.h>
+
+#define BAUDRATE 9600
+#include "usart.h"
+   
+int main(void)
+{
+	//PORTB |= (1 << MODE_BUTTON) ; // PULLUP für inputs
+	DDRC = 0xFF;
+	usart_init(BAUDRATE); // setup the UART
+	sei();
+	while(1)
+	{
+	PORTC = 0xFF ; 
+	usart_write_str("START");
+	_delay_ms(400);
+	PORTC = 0 ; 
+	_delay_ms(400);
+	}
+    /*
+	usart_init(BAUDRATE); // setup the UART
+	while(1)
+	{
+	usart_write_str("START");
+	_delay_ms(100);
+	}
+	*/
+
+}

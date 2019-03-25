@@ -1,0 +1,195 @@
+00000000 W __heap_end
+00000000 a __tmp_reg__
+00000000 a __tmp_reg__
+00000000 a __tmp_reg__
+00000000 a __tmp_reg__
+00000000 a __tmp_reg__
+00000000 W __vector_default
+00000000 T __vectors
+00000001 a __zero_reg__
+00000001 a __zero_reg__
+00000001 a __zero_reg__
+00000001 a __zero_reg__
+00000001 a __zero_reg__
+00000026 00000010 T table
+00000034 a __CCP__
+00000034 a __CCP__
+00000034 a __CCP__
+00000034 a __CCP__
+00000034 a __CCP__
+00000036 T __ctors_end
+00000036 T __ctors_start
+00000036 T __dtors_end
+00000036 T __dtors_start
+00000036 W __init
+00000036 T __trampolines_end
+00000036 T __trampolines_start
+0000003d a __SP_L__
+0000003d a __SP_L__
+0000003d a __SP_L__
+0000003d a __SP_L__
+0000003d a __SP_L__
+0000003e a __SP_H__
+0000003e a __SP_H__
+0000003e a __SP_H__
+0000003e a __SP_H__
+0000003e a __SP_H__
+0000003f a __SREG__
+0000003f a __SREG__
+0000003f a __SREG__
+0000003f a __SREG__
+0000003f a __SREG__
+00000042 T __do_copy_data
+0000004e t .do_copy_data_loop
+00000052 t .do_copy_data_start
+00000058 T __do_clear_bss
+00000060 t .do_clear_bss_loop
+00000062 t .do_clear_bss_start
+0000006c T __bad_interrupt
+0000006c W __vector_1
+0000006c W __vector_10
+0000006c W __vector_12
+0000006c W __vector_13
+0000006c W __vector_15
+0000006c W __vector_16
+0000006c W __vector_17
+0000006c W __vector_18
+0000006c W __vector_2
+0000006c W __vector_3
+0000006c W __vector_4
+0000006c W __vector_5
+0000006c W __vector_6
+0000006c W __vector_8
+0000006c W __vector_9
+0000006e 0000009a T __vector_7
+00000108 0000000e T read_encoder
+00000116 0000000a T restart
+00000120 00000006 T discharge_ok_btn
+00000126 00000038 T timer_init
+0000015e 0000000e T f_restart
+0000016c 0000005a T f_set_batt_type
+000001c6 0000000e T f_wait_start
+000001d4 00000042 T charge_ok_btn
+00000216 0000008a T wait_start_ok
+000002a0 000000c6 T f_set_target_voltage
+00000366 00000096 T print_voltage_current
+000003fc 000000b8 T f_charge
+0000045f W __stack
+000004b4 00000078 T f_discharge
+0000052c 00000062 T f_set_curr
+0000058e 00000014 T read_settings
+000005a2 000001d4 T main
+00000776 00000042 T save_settings
+000007b8 00000044 T usart_init
+000007fc 00000012 T usart_write_char
+0000080e 0000001c T usart_write_str
+0000082a 0000012a T __vector_11
+00000954 000001be T usart_write_P
+00000b12 0000000a T adc_init
+00000b1c 000000b4 T __vector_14
+00000bd0 0000009a t lcd_write
+00000c6a 00000060 t lcd_read
+00000cca 0000000a T lcd_waitbusy
+00000cd4 00000010 T lcd_command
+00000ce4 00000010 T lcd_gotoxy
+00000cf4 00000016 T lcd_getxy
+00000d0a 00000006 T lcd_clrscr
+00000d10 00000006 T lcd_home
+00000d16 0000004a T lcd_scrollup
+00000d60 00000040 T lcd_putc
+00000da0 0000001e T lcd_puts
+00000dbe 00000022 T lcd_puts_p
+00000de0 00000072 T lcd_init
+00000e52 000000d6 T cheapitoa
+00000f28 0000008c T convert_print_value
+00000fb4 00000096 T convert_print_value_mult_1000
+0000104a 0000000a T __subsf3
+0000104c T __addsf3
+0000106e 000000c0 T __addsf3x
+00001114 00000008 T __cmpsf2
+00001114 T __eqsf2
+00001114 T __lesf2
+00001114 T __ltsf2
+00001114 T __nesf2
+0000111c 0000000a T __fixsfsi
+00001126 00000058 T __fixunssfsi
+0000117e 0000007a T __floatunsisf
+00001182 T __floatsisf
+000011f8 00000048 T __fp_cmp
+00001240 0000000c T __fp_inf
+0000124c 00000006 T __fp_nan
+00001252 0000000e T __fp_pscA
+00001260 0000000e T __fp_pscB
+0000126e 00000022 T __fp_round
+00001290 00000044 T __fp_split3
+000012a0 T __fp_splitA
+000012d4 0000000e T __fp_zero
+000012d6 T __fp_szero
+000012e2 00000008 T __gesf2
+000012e2 T __gtsf2
+000012ea 00000004 T __mulsf3
+00001302 000000c2 T __mulsf3x
+00001306 T __mulsf3_pse
+000013b0 T __divmodhi4
+000013b0 T _div
+000013c4 t __divmodhi4_neg2
+000013ca t __divmodhi4_exit
+000013cc t __divmodhi4_neg1
+000013d6 T __udivmodsi4
+000013e2 t __udivmodsi4_loop
+000013fc t __udivmodsi4_ep
+0000141a T __udivmodhi4
+00001422 t __udivmodhi4_loop
+00001430 t __udivmodhi4_ep
+00001442 0000003a T atoi
+0000147c 00000016 T strcat
+00001492 0000000e T strcpy
+000014a0 T itoa
+000014de T __mulhi_const_10
+000014ee 00000020 T __eerd_block_m8
+000014f2 T __eerd_blraw_m8
+0000150e 0000001e T __eeupd_block_m8
+0000152c 00000022 T __eeupd_byte_m8
+0000152e T __eeupd_r18_m8
+0000154e 00000020 T strrev
+0000156e T _exit
+0000156e W exit
+00001570 t __stop_program
+00001572 A __data_load_start
+00001572 T _etext
+000016b8 A __data_load_end
+00800060 D __data_start
+0080012a 00000002 D batMenuName
+00800140 0000000e D batMenuItems
+0080014e 00000002 D current_pwm
+0080017e 00000012 D MODES
+00800190 00000002 D rx_buffer_pointer_in
+00800192 00000002 D rx_buffer_pointer_out
+00800194 00000012 D adc_val_arr
+008001a6 B __bss_start
+008001a6 D __data_end
+008001a6 D _edata
+008001a6 00000001 B adv_cnt
+008001a7 00000002 B expected_charge_current
+008001a9 00000001 b bounce_counter.1748
+008001aa 00000001 b last.1747
+008001ab 00000002 B buffercounter
+008001ad 00000001 B mode_pressed
+008001ae 00000009 B settings
+008001b7 00000014 B buff
+008001cb 00000001 B encoder
+008001cc 00000004 B capacity
+008001d0 00000001 B mode
+008001d1 00000002 B min_batt_voltage
+008001d3 00000001 B usart_status
+008001d4 00000001 B charge_mode
+008001d5 00000002 B target_voltage
+008001d7 00000001 B ok_pressed
+008001d8 00000008 B target_voltage_str
+008001e0 00000014 B usart_rx_buffer
+008001f4 00000001 B enc_delta
+008001f5 00000001 B cnt
+008001f6 B __bss_end
+008001f6 B _end
+00810000 00000009 D ee_settings
+00810009 D __eeprom_end
