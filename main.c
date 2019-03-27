@@ -29,6 +29,7 @@ char* batMenuItems[7] = {"Auto", "1S", "2S", "3S", "4S", "5S"};
 int8_t encoder;  
 uint8_t mode;
 
+#define BLOCK_WAIT_OK_EVENT 	while(!ok_button_event){ _delay_ms(100); } ok_button_event = 0;
 
 #define CURRENT_AMP_SLOPE 0.500 //0.500 V/A
 #define AD_RESOLUTION 2.441 //mv/step for internal reference and 10bit ad conversion
@@ -89,13 +90,17 @@ struct s_settings settings;
 
 char target_voltage_str[8] ;
 
-volatile int8_t enc_delta;              // Drehgeberbewegung zwischen zwei Auslesungen im Hauptprogramm
+volatile int8_t enc_delta;              // Number of encoder pulses between two readings
 volatile uint8_t mode_pressed;
-volatile uint8_t ok_pressed;
+volatile uint8_t ok_button_event;
 
-// Dekodertabelle für wackeligen Rastpunkt
-// halbe Auflösung
+// Rotary encoder decoding table (half resolution) 
 const int8_t table[16] PROGMEM = {0,0,-1,0,0,0,0,1,1,0,0,0,0,-1,0,0}; 
+
+#define MAIN_ROTARY_HANDLER 0
+#define SUBMENU_ROTARY_HANDLER 1
+
+volatile uint8_t rotary_mode = MAIN_ROTARY_HANDLER;
 
 #define DEF_BOUNCE_CNT 45
 ISR( TIMER1_COMPB_vect )             // 1ms fuer manuelle Eingabe
@@ -108,15 +113,14 @@ ISR( TIMER1_COMPB_vect )             // 1ms fuer manuelle Eingabe
     if (PHASE_B) last |=1;
     enc_delta += pgm_read_byte(&table[last]);
 	
-	//read and debounce the buttons 
-	
+	//read and debounce the buttons 	
 	if(bounce_counter== 0 && mode_pressed == 0 && bit_is_clear(PINC, MODE_BUTTON)){ //mode button event processed, and new press detected
 	
 		mode_pressed = 1;
 		bounce_counter = DEF_BOUNCE_CNT;
 	}
-	if(bounce_counter== 0 && ok_pressed == 0 && bit_is_clear(PINC, OK_BUTTON)){ //ok button event processed, and new press detected
-		ok_pressed = 1;	
+	if(bounce_counter== 0 && ok_button_event == 0 && bit_is_clear(PINC, OK_BUTTON)){ //ok button event processed, and new press detected outside the bounce window
+		ok_button_event = 1;
 		bounce_counter = DEF_BOUNCE_CNT;
 	}
 	if (bounce_counter >0) bounce_counter --;
@@ -187,68 +191,85 @@ void print_voltage_current(void){
 	lcd_puts(" mA");
 }
 
-#define CHARGING_ABORT 2
-#define CHARGING_DONE 1
-#define CHARGING_ACTIVE 0
+
+#define CHARGE_MODE_CHARGING_ABORT 3
+#define CHARGE_MODE_CHARGING_DONE 2
+#define CHARGE_MODE_CHARGING_ACTIVE 1
+#define CHARGE_MODE_PREPARING 0
 
 uint8_t charge_mode ;
 uint16_t target_voltage;
 uint16_t min_batt_voltage;
 
+
 void f_charge (void){
-	lcd_gotoxy(7,0); 
-	lcd_puts(batMenuItems[settings.batt_type]);
-	
-	lcd_gotoxy(0,1); 
-	uint16_t batt_voltage = adc_val_arr[0].value;
-	uint16_t charge_current = adc_val_arr[1].value;
-	
-	if (charge_mode == CHARGING_ABORT){
-		SWITCH_CHARGING_OFF;
-		lcd_puts("CHARGING ABORTED"); 	
-		return;
+	if (charge_mode == CHARGE_MODE_PREPARING){
+		lcd_clrscr();
+		lcd_gotoxy(0,0); 
+		target_voltage = settings.target_cell_voltage*settings.batt_type;
+		lcd_puts("TV");
+		convert_print_value_mult_1000(3,0,target_voltage*AD_RESOLUTION_VOLTAGEINPUT, target_voltage_str); 
+		
+		charge_mode = CHARGE_MODE_CHARGING_ACTIVE;
 	}
-	if (charge_mode == CHARGING_DONE) {
-		SWITCH_CHARGING_OFF;
-		lcd_puts("CHARGING FINISHED"); 
-		return;
-	}else{
+	if (charge_mode == CHARGE_MODE_CHARGING_ACTIVE){
 		SWITCH_CHARGING_ON;
-	}
-	
-	if (batt_voltage >=  target_voltage && charge_current < FINAL_CHARGE_CURRENT){
-		//disconnect charging
+		lcd_gotoxy(10,0); 
+		lcd_puts(batMenuItems[settings.batt_type]);
+		
+		lcd_gotoxy(0,1); 
+		uint16_t batt_voltage = adc_val_arr[0].value;
+		uint16_t charge_current = adc_val_arr[1].value;
+		
+		//if (batt_voltage >=  target_voltage && charge_current < FINAL_CHARGE_CURRENT){
+		if (batt_voltage >=  target_voltage ){
+			//disconnect charging
+			SWITCH_CHARGING_OFF;
+			charge_mode = CHARGE_MODE_CHARGING_DONE;
+		}
+		print_voltage_current();
+		/*if (adc_val_arr[0].value < target_voltage) {
+			//keep loading in constant voltage mode
+			//show mode on display
+			lcd_puts("CC to "); 
+			lcd_puts(target_voltage_str);
+		}else{			
+			lcd_puts("final CV "); 
+			//start reducing the charging current
+			charge_mode = CHARGING_DONE;
+			;
+		}*/		
+		
+	}		
+
+	if (charge_mode == CHARGE_MODE_CHARGING_DONE) {
+		
 		SWITCH_CHARGING_OFF;
-		charge_mode = CHARGING_DONE;
+		lcd_gotoxy(0,1); 
+		lcd_puts("CHARGING FINISHED"); 
 	}
-	if (adc_val_arr[0].value < target_voltage) {
-		//keep loading in constant voltage mode
-		//show mode on display
-		lcd_puts("CC to "); 
-        lcd_puts(target_voltage_str);
-	}else{			
-		lcd_puts("final CV "); 
-		//start reducing the charging current
-		charge_mode = CHARGING_DONE;
-		;
-	}
-	print_voltage_current();
+
+	
 };
 
-bool charge_ok_btn(void){
-	if (charge_mode == CHARGING_DONE){
+bool charge_finally(void){
+	lcd_gotoxy(0,1); 
+	SWITCH_CHARGING_OFF;
+
+	if (charge_mode == CHARGE_MODE_CHARGING_DONE){
 		mode = 0;
-		restart();
-		return true;
+		//restart();
+		lcd_puts("Full charged."); 	
 	} else {
-		lcd_clrscr();
-		lcd_gotoxy(1,10); 
-		lcd_puts("Stop charging"); 
+//		lcd_clrscr();
+		lcd_gotoxy(0,1); 
+		lcd_puts("Aborted."); 	
 		_delay_ms(200);
-		lcd_clrscr();
-		charge_mode = CHARGING_ABORT;
-		return false;
 	}
+	lcd_puts(" Press OK"); 	
+	BLOCK_WAIT_OK_EVENT;
+	charge_mode = CHARGE_MODE_PREPARING;
+	return true;
 }
 
 float capacity;
@@ -274,8 +295,11 @@ void f_discharge (void){
 	
 };
 
-bool discharge_ok_btn(void){
+bool discharge_finally(void){
 	SWITCH_DISCHARGING_OFF;
+	lcd_gotoxy(0,1);
+	lcd_puts("Discharge stop. Press OK"); 
+	BLOCK_WAIT_OK_EVENT;
 	return true;
 }
 
@@ -321,8 +345,6 @@ void f_set_curr		(void){
 
 void f_set_target_voltage (void){
 	
-	//convert_print_value_mult_1000(10,0, MIN_ADVAL_CELL_VOLTAGE*AD_RESOLUTION_VOLTAGEINPUT);
-	//convert_print_value_mult_1000(16,0, MAX_ADVAL_CELL_VOLTAGE*AD_RESOLUTION_VOLTAGEINPUT);
 	if (encoder > 0) {
 		if (settings.target_cell_voltage < MAX_ADVAL_CELL_VOLTAGE) settings.target_cell_voltage++;
 	};
@@ -341,36 +363,7 @@ void f_restart (void){
 };
 
 
-bool wait_start_ok(void){
-	//TODO: autodetect battery
-	//
-	lcd_clrscr();
-    lcd_gotoxy(0,0); 
-    if (settings.batt_type == 0) {
-		lcd_puts("Try to detect battery .. ");	
-		
-		if (adc_val_arr[1].value < MIN_ADVAL_CHARGE_CURRENT){
-			lcd_puts("Battery not detected");	
-			return false;
-		}
-		settings.batt_type  = 5;
-	}
-	target_voltage = settings.target_cell_voltage*settings.batt_type;
-	
-	convert_print_value_mult_1000(0,1,target_voltage*AD_RESOLUTION_VOLTAGEINPUT, target_voltage_str); //keep it as string for display
-	charge_mode = CHARGING_ACTIVE;
-	mode_pressed = 1; //jump to charging mode
-	return true;
-}
-/*
-bool show_done(void){
-	lcd_clrscr();
-    lcd_gotoxy(4,0); 
-    lcd_puts("....");	
-	_delay_ms(400);
-	return true;
-};
-*/
+
 typedef struct
 {
 	//uint8_t mode; 				        
@@ -384,8 +377,8 @@ typedef struct
 MODE_STRUCT MODES[] = 
 {
 	//{f_wait_start, "START CHARGING", wait_start_ok}, 
-	//{f_charge, "CHARGE", charge_ok_btn}, 
-	//{f_discharge, "DISCHARGE", discharge_ok_btn}, 
+	{f_charge, "CHARGE", charge_finally}, 
+	{f_discharge, "DISCHARGE", discharge_finally}, 
 	{f_set_batt_type, "BATT TYPE", save_settings}, 
 	{f_set_curr, "SET CHARGE CURRENT", save_settings}, 
 	{f_set_target_voltage, "SET CELL VOLTAGE", save_settings}, 
@@ -437,14 +430,14 @@ int main(void)
     //set OC1A as output
     DDRB |= (1 << PB1) ;
 	
-	//relaises
+	//relays
 	DDRB |=  (1 << CHARGE_RELAIS_PIN) | (1 << DISCHARGE_RELAIS_PIN) ; 
     
 	lcd_init(LCD_DISP_ON);
 	lcd_clrscr();
 	lcd_gotoxy(0,1); 
 	
-	
+	static uint8_t prev_mode ;
 	timer_init();
 	
 	adc_init();
@@ -459,52 +452,58 @@ int main(void)
 	min_batt_voltage = MIN_CELL_VOLTAGE*AD_RESOLUTION_VOLTAGEINPUT*settings.batt_type;
 	
 	for (;;) { /* loop forever */
-		if (mode_pressed) //mode button pressed
-		{
-			if (mode < NELEMS(MODES)-1){
-                mode+=1;
-				lcd_clrscr();                
-            }else{
-				mode=0;
-			}
-			mode_pressed = 0;
-		}
-		if (ok_pressed) //ok button pressed
-		{
-			ok_pressed = 0;
-			bool bDone = false;
-			if (MODES[mode].finally != NULL){
-				bDone = MODES[mode].finally();
-			}
-			if (bDone == true){
-				_delay_ms(500);
-				lcd_clrscr();
-				mode = 0;
-			}
 			
+		if (enc_delta != 0) //encoder rotation in the main function changes the mode
+		{
+			prev_mode = mode;
+			if (enc_delta > 0) {
+				if (mode < NELEMS(MODES)-1) 
+					mode+=1;
+			}else {
+				if (mode >0 )
+					mode-=1;
+			};
+			lcd_clrscr();                
+			enc_delta = 0;
+		}
+		
+		lcd_gotoxy(0,0); 
+		lcd_puts(MODES[mode].descr);
+		if(ok_button_event){ //enter the mode handler loop 
+			ok_button_event = 0;
+			
+			while(! ok_button_event){ //call the mode function until the OK button is pressed
+				read_encoder();
+				//call handling function
+				MODES[mode].fp();
+			}
+			//if (ok_button_event) 
+             //OK has ben pressed again, leave the mode and call the finally func			
+			{
+				ok_button_event = 0;
+				bool bDone = false;
+				if (MODES[mode].finally != NULL){
+					bDone = MODES[mode].finally();
+				}
+				lcd_clrscr();    
+				mode= 0;
+				/*if (bDone == true){
+					_delay_ms(500);
+					lcd_clrscr();
+					mode = 0;
+				}*/			
+			}
 			
 		}
 
-		//call the mode handling func
-		lcd_gotoxy(0,0); 
-		lcd_puts(MODES[mode].descr);
-		//read encoder
-		read_encoder();  
-		//call handling function
-		MODES[mode].fp();
-        
-		lcd_gotoxy(0,1); 
-		char* memaddr = &settings;
-		lcd_putc( (((int) memaddr)>>4) + 0x30 );
-		lcd_putc( (((int) memaddr)&0x0F) + 0x30 );
-		for (int i = 0; i < sizeof(settings); i++){
-		
-			
-			lcd_putc( (*(memaddr + i) >> 4) + 0x30);
-			lcd_putc( (*(memaddr + i) & 0x0F) + 0x30);
-		}
-		
 		_delay_ms(200);
+        //usart_write_str(buff);
+		//usart_write_str("\n\r");
+    }
+}
+
+//Some useful sniplets
+//------------- debug inputs --------------
         /*lcd_gotoxy(0,1); 
 		lcd_putc(ticker);
 		cheapitoa(adc_val_arr[0].value, buff);
@@ -517,7 +516,17 @@ int main(void)
         lcd_gotoxy(14,1); 
         lcd_puts(buff);        
 		*/
-        //usart_write_str(buff);
-		//usart_write_str("\n\r");
-    }
-}
+
+//------------ print mem region ---------
+        /*
+		lcd_gotoxy(0,1); 
+		char* memaddr = &settings;
+		lcd_putc( (((int) memaddr)>>4) + 0x30 );
+		lcd_putc( (((int) memaddr)&0x0F) + 0x30 );
+		for (int i = 0; i < sizeof(settings); i++){
+		
+			
+			lcd_putc( (*(memaddr + i) >> 4) + 0x30);
+			lcd_putc( (*(memaddr + i) & 0x0F) + 0x30);
+		}
+		*/
